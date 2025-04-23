@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Conference Schedule</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        background: #f9fafb;
+        padding: 20px;
+      }
+
+      h1,
+      h2 {
+        margin-bottom: 10px;
+      }
+
+      .legend {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+      }
+
+      .legend div {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .color {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+      }
+
+      .main {
+        background: #3b82f6;
+      }
+      .edu {
+        background: #10b981;
+      }
+      .lowther {
+        background: #f59e0b;
+      }
+      .break,
+      .lunch {
+        background: #e5e7eb;
+        color: #111827;
+        font-style: italic;
+      }
+
+      .schedule {
+        display: grid;
+        grid-template-columns: 100px 1fr 1fr 1fr;
+        gap: 10px;
+      }
+
+      .time {
+        font-weight: bold;
+        align-self: center;
+        padding-right: 10px;
+      }
+
+      .bar {
+        border-radius: 8px;
+        padding: 8px 12px;
+        color: white;
+        font-size: 0.9em;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+
+      .bar.empty {
+        background: transparent;
+        cursor: default;
+      }
+
+      .selected {
+        outline: 3px solid black;
+        transform: scale(1.03);
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+      }
+
+      #mySchedule {
+        margin-top: 40px;
+        padding: 20px;
+        border-radius: 12px;
+        background: #ffffff;
+        box-shadow: 0 0 12px rgba(0, 0, 0, 0.05);
+      }
+
+      .schedule-item {
+        margin-bottom: 10px;
+      }
+
+      .schedule-item span {
+        display: inline-block;
+        min-width: 100px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>April 25 Conference Schedule</h1>
+
+    <div class="legend">
+      <div>
+        <div class="color main"></div>
+        Main Room
+      </div>
+      <div>
+        <div class="color edu"></div>
+        Educational Center
+      </div>
+      <div>
+        <div class="color lowther"></div>
+        Lowther Room
+      </div>
+    </div>
+
+    <div class="schedule" id="schedule"></div>
+
+    <div id="mySchedule">
+      <h2>My Selected Talks</h2>
+      <div id="selectedList">No talks selected yet.</div>
+    </div>
+
+    <script>
+      const schedule = [
+        ["08:30", "Registration and Breakfast", "", ""],
+        ["09:45", "Kent C Dodds - The Future of User Interaction", "", ""],
+        [
+          "10:25",
+          "Maxim Salnikov - Privacy-first GenAI web apps",
+          "Matheus Albuquerque - Speed at Scale",
+          "Nikola Mitrovic - gRPC Streams in NestJS",
+        ],
+        [
+          "10:55",
+          "Michael Arnaldi - Effect: TypeScript",
+          "Daniel Afonso - State of JS Testing 2025",
+          "Adam Cowley - Generative AI for Front-end",
+        ],
+        ["11:15", "Break", "Break", "Break"],
+        [
+          "11:30",
+          "Zack Jackson - History Behind Lynx",
+          "Rahul Nanwani - Images, Videos & AI in React",
+          "Roei Berkovich - Micro Frontend Challenges",
+        ],
+        [
+          "12:00",
+          "Liran Tal - Hacking AI Applications",
+          "",
+          "Perttu Lähteenlahti - 3D Graphics in React (three-fiber)",
+        ],
+        ["12:30", "Lunch", "Lunch", "Lunch"],
+        [
+          "13:30",
+          "Jo Franchetti - In-browser Code Editor",
+          "",
+          "Kate Marshalkina - Playwright Testing at Scale",
+        ],
+        [
+          "14:00",
+          "Marco Ippolito - TypeScript Goes Native",
+          "",
+          "Vladimir de Turckheim - JavaScript Isn’t Dead",
+        ],
+        ["14:15", "", "Guilherme Dalla Rosa - Multi-Tenant with Next.js", ""],
+        [
+          "14:30",
+          "Ramona Schwering - Web Security via Horror Movies",
+          "",
+          "Jemima Abu - Accessible.JS",
+        ],
+        ["14:50", "Break", "Break", "Break"],
+        [
+          "15:05",
+          "Tamas Piros - Full Stack Web Dev with AI",
+          "Faris Aziz - Solving Web Monetization",
+          "Alistair Shepherd - Accessibility Testing Adventure",
+        ],
+        [
+          "15:40",
+          "Rich Harris - Await for it",
+          "Peter-Paul Koch - Pay the Web Forward",
+          "Matthew Cox - Event Driven Frontends",
+        ],
+        ["16:15", "Rahul Nanwani - Real-Time Video API", "", ""],
+        ["16:20", "Jason Lengstorf - The Upside of Being Unreasonable", "", ""],
+        ["16:50", "Closing of the Conference", "", ""],
+      ];
+
+      const scheduleDiv = document.getElementById("schedule");
+      const selectedListDiv = document.getElementById("selectedList");
+      const selectedTalks = [];
+
+      function createCell(content, type, time, room) {
+        if (!content) return `<div class="bar empty"></div>`;
+        const baseClass = content.toLowerCase().includes("break")
+          ? "break"
+          : content.toLowerCase().includes("lunch")
+          ? "lunch"
+          : type;
+        const clickHandler =
+          baseClass === "main" || baseClass === "edu" || baseClass === "lowther"
+            ? `onclick="toggle(this, '${content}', '${time}', '${room}')"`
+            : "";
+        return `<div class="bar ${baseClass}" ${clickHandler}>${content}</div>`;
+      }
+
+      function toggle(el, content, time, room) {
+        if (el.classList.contains("selected")) {
+          el.classList.remove("selected");
+          const index = selectedTalks.findIndex(
+            (item) =>
+              item.content === content &&
+              item.time === time &&
+              item.room === room
+          );
+          if (index > -1) selectedTalks.splice(index, 1);
+        } else {
+          el.classList.add("selected");
+          selectedTalks.push({ time, content, room });
+        }
+        updateSelectedList();
+      }
+
+      function updateSelectedList() {
+        if (selectedTalks.length === 0) {
+          selectedListDiv.innerHTML = "No talks selected yet.";
+          return;
+        }
+        selectedTalks.sort((a, b) => a.time.localeCompare(b.time));
+        selectedListDiv.innerHTML = selectedTalks
+          .map(
+            (talk) => `
+        <div class="schedule-item">
+          <span><strong>${talk.time}</strong></span> | 
+          <span>${talk.room}</span> — 
+          <span>${talk.content}</span>
+        </div>
+      `
+          )
+          .join("");
+      }
+
+      schedule.forEach(([time, main, edu, lowther]) => {
+        scheduleDiv.innerHTML += `
+        <div class="time">${time}</div>
+        ${createCell(main, "main", time, "Main Room")}
+        ${createCell(edu, "edu", time, "Educational Center")}
+        ${createCell(lowther, "lowther", time, "Lowther Room")}
+      `;
+      });
+    </script>
+  </body>
+</html>
